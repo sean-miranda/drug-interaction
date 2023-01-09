@@ -11,7 +11,7 @@ import requests
 # drug_details.csv : Contains the list of drug ids and nanmes extracted fromn drugs.com interaction api
 # live_search_url: https://www.drugs.com/js/search/?id=livesearch-interaction&s=a : Gives all the drugs starting with a when enetering a in the drop down at https://www.drugs.com/drug_interactions.html
 
-generic_names_xlsx = 'generic_names.xlsx'
+generic_names_xlsx = 'generic_names.xls'
 drug_details_csv = 'drug_details.csv'
 drug_pairs_csv = 'drug_pairs.csv'
 live_search_url = 'https://www.drugs.com/js/search/?id=livesearch-interaction'
