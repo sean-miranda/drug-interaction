@@ -15,6 +15,7 @@ generic_names_xlsx = 'generic_names.xlsx'
 drug_details_csv = 'drug_details.csv'
 drug_pairs_csv = 'drug_pairs.csv'
 live_search_url = 'https://www.drugs.com/js/search/?id=livesearch-interaction'
+interaction_url = 'https://www.drugs.com/interactions-check.php?drug_list=11-2744,1989-0&professional=1'
 
 
 def saveDrugDetails():
@@ -59,4 +60,21 @@ def makePairs():
     df.to_csv(drug_pairs_csv, sep="|", header=True, index=False)
 
 
-# makePairs()
+def getDrugIdentifier(drug_id):
+    return drug_id.rsplit('-', 1)[0]
+
+
+def getInteraction():
+
+    df = pd.read_csv(drug_pairs_csv, sep="|")
+
+    for index, row in df.iterrows():
+
+        drug_1 = getDrugIdentifier(row['drug_id_1'])
+        drug_2 = getDrugIdentifier(row['drug_id_2'])
+        html_data = requests.get(url=interaction_url, params={
+            'durg_list': drug_1 + ',' + drug_2, 'professional': '1'}).text
+        print(html_data)
+        print('*********************************************')
+
+getInteraction.read_csv(drug_details_csv, sep="|")()
