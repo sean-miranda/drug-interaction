@@ -6,6 +6,8 @@ import numpy
 import pandas as pd
 import requests
 
+import lxml.html
+
 # files:
 # generic_names.xlsx : Multum classification codes Ex: d00001 ACYCLOVIR
 # drug_details.csv : Contains the list of drug ids and nanmes extracted fromn drugs.com interaction api
@@ -15,7 +17,7 @@ generic_names_xlsx = 'generic_names.xlsx'
 drug_details_csv = 'drug_details.csv'
 drug_pairs_csv = 'drug_pairs.csv'
 live_search_url = 'https://www.drugs.com/js/search/?id=livesearch-interaction'
-interaction_url = 'https://www.drugs.com/interactions-check.php?drug_list=11-2744,1989-0&professional=1'
+interaction_url = 'https://www.drugs.com/interactions-check.php'
 
 
 def saveDrugDetails():
@@ -64,17 +66,36 @@ def getDrugIdentifier(drug_id):
     return drug_id.rsplit('-', 1)[0]
 
 
+def getTextFromXpath(doc, xpath):
+    return [element.text_content().strip() for element in doc.xpath(xpath)]
+
+
 def getInteraction():
 
-    df = pd.read_csv(drug_pairs_csv, sep="|")
+    df = pd.read_csv(drug_pairs_csv, sep="|").head(1)
 
     for index, row in df.iterrows():
 
-        drug_1 = getDrugIdentifier(row['drug_id_1'])
-        drug_2 = getDrugIdentifier(row['drug_id_2'])
+        # drug_1 = getDrugIdentifier(row['drug_id_1'])
+        # drug_2 = getDrugIdentifier(row['drug_id_2'])
+        drug_1 = "1310-779"
+        drug_2 = "2311-0"
         html_data = requests.get(url=interaction_url, params={
-            'durg_list': drug_1 + ',' + drug_2, 'professional': '1'}).text
+            'drug_list': drug_1 + ',' + drug_2, 'professional': '1'}).text
         print(html_data)
+
         print('*********************************************')
 
-getInteraction.read_csv(drug_details_csv, sep="|")()
+        doc = lxml.html.fromstring(html_data)
+        severity = getTextFromXpath(
+            doc, '(//div[contains(@class,"interactions-reference")])[1]//span[contains(@class,"status")]')
+        interaction = getTextFromXpath(
+            doc, '((//div[contains(@class,"interactions-reference")])[1]//p)[2]')
+        references = getTextFromXpath(
+            doc, '(//div[contains(@class,"interactions-reference")])[1]//div[contains(@class,"reference-list")]//li')
+
+        print('*********************************************')
+
+
+if __name__ == "__main__":
+    getInteraction()
