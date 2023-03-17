@@ -78,21 +78,40 @@ def getInteraction():
 
         # drug_1 = getDrugIdentifier(row['drug_id_1'])
         # drug_2 = getDrugIdentifier(row['drug_id_2'])
-        drug_1 = "1310-779"
+        drug_1 = "1476-0"
         drug_2 = "2311-0"
         html_data = requests.get(url=interaction_url, params={
             'drug_list': drug_1 + ',' + drug_2, 'professional': '1'}).text
-        print(html_data)
+
+        doc = lxml.html.fromstring(html_data)
 
         print('*********************************************')
 
-        doc = lxml.html.fromstring(html_data)
         severity = getTextFromXpath(
             doc, '(//div[contains(@class,"interactions-reference")])[1]//span[contains(@class,"status")]')
         interaction = getTextFromXpath(
             doc, '((//div[contains(@class,"interactions-reference")])[1]//p)[2]')
         references = getTextFromXpath(
             doc, '(//div[contains(@class,"interactions-reference")])[1]//div[contains(@class,"reference-list")]//li')
+
+        print('*********************************************')
+
+
+        drug = getTextFromXpath(
+                doc, '//h2[text()="Drug and food interactions"]//following::div[1]//h3')
+        
+        severity = getTextFromXpath(
+                doc, '//h2[text()="Drug and food interactions"]//following::div[1]//span')
+        
+        drug = [x.split()[0] for x in drug]
+        print(drug)
+
+        print(severity)
+
+
+            
+
+        print('*********************************************')
 
         print('*********************************************')
 
