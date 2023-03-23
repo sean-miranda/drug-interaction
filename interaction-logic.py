@@ -80,12 +80,19 @@ def getInteraction():
         # drug_2 = getDrugIdentifier(row['drug_id_2'])
         drug_1 = "1476-0"
         drug_2 = "2311-0"
+        # drug_1 = "11-2689"
+        # drug_2 = "11-2744"
+        # drug_1 = "2024-0"
+        # drug_2 = "2136-0"
         html_data = requests.get(url=interaction_url, params={
             'drug_list': drug_1 + ',' + drug_2, 'professional': '1'}).text
 
         doc = lxml.html.fromstring(html_data)
 
         print('*********************************************')
+
+
+        ### Note to do: Modify references to handle multiple interactions
 
         severity = getTextFromXpath(
             doc, '(//div[contains(@class,"interactions-reference")])[1]//span[contains(@class,"status")]')
@@ -94,24 +101,49 @@ def getInteraction():
         references = getTextFromXpath(
             doc, '(//div[contains(@class,"interactions-reference")])[1]//div[contains(@class,"reference-list")]//li')
 
-        print('*********************************************')
+        print(severity)
+        print(interaction)
+        print(references)
 
+        print('*********************************************')
 
         drug = getTextFromXpath(
-                doc, '//h2[text()="Drug and food interactions"]//following::div[1]//h3')
-        
+            doc, '//h2[text()="Drug and food interactions"]//following::div[1]//h3')
+
         severity = getTextFromXpath(
-                doc, '//h2[text()="Drug and food interactions"]//following::div[1]//span')
-        
+            doc, '//h2[text()="Drug and food interactions"]//following::div[1]//span')
+
+        foodInteraction = getTextFromXpath(
+            doc, '//h2[text()="Drug and food interactions"]//following::div[@class="interactions-reference"]/p[1]')
+
+        references = getTextFromXpath(
+            doc, ' //h2[text()="Drug and food interactions"]//following::div[@class="interactions-reference"]/div[contains(@class,"reference-list")]')
+
         drug = [x.split()[0] for x in drug]
+
         print(drug)
-
         print(severity)
-
-
-            
+        print(foodInteraction)
+        print(references)
 
         print('*********************************************')
+
+        duplicationCategory = getTextFromXpath(
+            doc, '(//div[@class="interactions-reference-wrapper"])[3]//h3')
+
+        duplicaitonText = getTextFromXpath(
+            doc, '(//div[@class="interactions-reference-wrapper"])[3]//div[@class="interactions-reference"]//descendant::p[2]')
+
+        # duplicationList = getTextFromXpath(
+        #     doc, '(//div[@class="interactions-reference-wrapper"])[3]//div[@class="interactions-reference"]//descendant::ul')
+
+        # duplicationP2 = getTextFromXpath(
+        #     doc, '(//div[@class="interactions-reference-wrapper"])[3]//div[@class="interactions-reference"]//descendant::p[3]')
+
+        print(duplicationCategory)
+        print(duplicaitonText)
+        # print(duplicationList)
+        # print(duplicationP2)
 
         print('*********************************************')
 
