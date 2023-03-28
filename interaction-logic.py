@@ -8,6 +8,26 @@ import requests
 
 import lxml.html
 
+
+class DrugInteraction:
+
+    def __init__(self, drug1: str, drug2: str):
+        self.drug1 = drug1
+        self.drug2 = drug2
+        self.severity
+        self.interaction
+        self.references = []
+
+    def addSeverity(self, severity :str):
+        self.severity = severity
+
+    def addInteraction(self, interaction: str):
+        self.interaction = interaction
+
+    def addReference(self, reference):
+        self.references.apppend(reference)
+
+
 # files:
 # generic_names.xlsx : Multum classification codes Ex: d00001 ACYCLOVIR
 # drug_details.csv : Contains the list of drug ids and nanmes extracted fromn drugs.com interaction api
@@ -73,39 +93,44 @@ def getTextFromXpath(doc, xpath):
 def getInteraction():
 
     df = pd.read_csv(drug_pairs_csv, sep="|").head(1)
+    
+    interactionDetails = []
 
     for index, row in df.iterrows():
 
-        # drug_1 = getDrugIdentifier(row['drug_id_1'])
-        # drug_2 = getDrugIdentifier(row['drug_id_2'])
-        drug_1 = "1476-0"
-        drug_2 = "2311-0"
-        # drug_1 = "11-2689"
-        # drug_2 = "11-2744"
-        # drug_1 = "2024-0"
-        # drug_2 = "2136-0"
+        drug_1 = getDrugIdentifier(row['drug_id_1'])
+        drug_2 = getDrugIdentifier(row['drug_id_2'])
         html_data = requests.get(url=interaction_url, params={
             'drug_list': drug_1 + ',' + drug_2, 'professional': '1'}).text
 
+
         doc = lxml.html.fromstring(html_data)
 
-        print('*********************************************')
+        ### Drug interaction
 
+        ## Note: To handle multiple interactions
 
-        ### Note to do: Modify references to handle multiple interactions
-
-        severity = getTextFromXpath(
+        severities = getTextFromXpath(
             doc, '(//div[contains(@class,"interactions-reference")])[1]//span[contains(@class,"status")]')
-        interaction = getTextFromXpath(
+        interactions = getTextFromXpath(
             doc, '((//div[contains(@class,"interactions-reference")])[1]//p)[2]')
         references = getTextFromXpath(
             doc, '(//div[contains(@class,"interactions-reference")])[1]//div[contains(@class,"reference-list")]//li')
+        
+        ## Note: To add drug Ids
+        drugInteraction =  DrugInteraction(drug_1, drug_2)
 
-        print(severity)
-        print(interaction)
-        print(references)
+        for severity in severities:
+            drugInteraction.addSeverity(severity)
 
-        print('*********************************************')
+        for interaction in interactions:
+            drugInteraction.addInteraction(interaction)
+
+        for reference in references:
+            drugInteraction.addReference(reference)
+
+
+        ### Food interaction
 
         drug = getTextFromXpath(
             doc, '//h2[text()="Drug and food interactions"]//following::div[1]//h3')
@@ -121,12 +146,7 @@ def getInteraction():
 
         drug = [x.split()[0] for x in drug]
 
-        print(drug)
-        print(severity)
-        print(foodInteraction)
-        print(references)
-
-        print('*********************************************')
+        ### Therapeutic duplication
 
         duplicationCategory = getTextFromXpath(
             doc, '(//div[@class="interactions-reference-wrapper"])[3]//h3')
@@ -134,18 +154,8 @@ def getInteraction():
         duplicaitonText = getTextFromXpath(
             doc, '(//div[@class="interactions-reference-wrapper"])[3]//div[@class="interactions-reference"]//descendant::p[2]')
 
-        # duplicationList = getTextFromXpath(
-        #     doc, '(//div[@class="interactions-reference-wrapper"])[3]//div[@class="interactions-reference"]//descendant::ul')
-
-        # duplicationP2 = getTextFromXpath(
-        #     doc, '(//div[@class="interactions-reference-wrapper"])[3]//div[@class="interactions-reference"]//descendant::p[3]')
-
         print(duplicationCategory)
         print(duplicaitonText)
-        # print(duplicationList)
-        # print(duplicationP2)
-
-        print('*********************************************')
 
 
 if __name__ == "__main__":
