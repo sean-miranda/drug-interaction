@@ -1,98 +1,16 @@
-import csv
-import itertools
-import re
-
-import numpy
-import pandas as pd
-import requests
-
-import lxml.html
-
-
-class DrugInteraction:
-
-    def __init__(self, drug_id_1: str, drug_id_2: str):
-        self.drug_id_1 = drug_id_1
-        self.drug_id_2 = drug_id_2
-        self.severity
-        self.interaction
-        self.references = []
-
-    def addSeverity(self, severity: str):
-        self.severity = severity
-
-    def addInteraction(self, interaction: str):
-        self.interaction = interaction
-
-    def addReference(self, reference: str):
-        self.references.apppend(reference)
-
-    def toCSV(self):
-
-        output = {'drug_id_1': self.drug_id_1,
-                  'drug_id_2': self.drug_id_2,
-                  'severity': self.severity,
-                  'interaction': self.interaction,
-                  'references': self.references}
-
-        pd.DataFrame.from_dict(output).to_csv(drug_interaction_csv)
-
-
-class FoodInteraction:
-
-    def __init__(self, drug_id: str):
-        self.drug_id = drug_id
-        self.severity
-        self.interaction
-        self.references = []
-
-    def addSeverity(self, severity: str):
-        self.severity = severity
-
-    def addInteraction(self, interaction: str):
-        self.interaction = interaction
-
-    def addReference(self, reference: str):
-        self.references.apppend(reference)
-
-    def toCSV(self):
-
-        output = {'drug_id': self.drug_id,
-                  'severity': self.severity,
-                  'interaction': self.interaction,
-                  'references': self.references}
-
-        pd.DataFrame.from_dict(output).to_csv(food_interaction_csv)
-
-
-class TherapeuticDuplication:
-
-    def __init__(self, drug_id_1: str, drug_id_2: str):
-        self.drug_id_1 = drug_id_1
-        self.drug_id_2 = drug_id_2
-        self.category = []
-        self.text = []
-
-    def addCategory(self, category: str):
-        self.category.append(category)
-
-    def addReference(self, text: str):
-        self.text.apppend(text)
-
-    def toCSV(self):
-
-        output = {'drug_id_1': self.drug_id_1,
-                  'drug_id_2': self.drug_id_2,
-                  'category': self.category,
-                  'text': self.text}
-
-        pd.DataFrame.from_dict(output).to_csv(therapeutic_duplication_csv)
-
-
 # files:
 # generic_names.xlsx : Multum classification codes Ex: d00001 ACYCLOVIR
 # drug_details.csv : Contains the list of drug ids and nanmes extracted fromn drugs.com interaction api
 # live_search_url: https://www.drugs.com/js/search/?id=livesearch-interaction&s=a : Gives all the drugs starting with a when enetering a in the drop down at https://www.drugs.com/drug_interactions.html
+
+import lxml.html
+import requests
+import pandas as pd
+import numpy
+import re
+import itertools
+import csv
+import re
 
 generic_names_xlsx = 'generic_names.xlsx'
 drug_details_csv = 'drug_details.csv'
@@ -102,9 +20,9 @@ interaction_url = 'https://www.drugs.com/interactions-check.php'
 
 drug_interaction_severity_xpath = '(//div[contains(@class,"interactions-reference")])[1]//span[contains(@class,"status")]'
 drug_interaction_interaction_xpath = '((//div[contains(@class,"interactions-reference")])[1]//p)[2]'
-drug_interaction_references_xpath = '(//div[contains(@class,"interactions-reference")])[1]//div[contains(@class,"reference-list")]//li'
+drug_interaction_references_xpath = '(//div[contains(@class,"interactions-reference")])[1]//div[contains(@class,"reference-list")]'
 
-food_interaction_drug_xpath = '//h2[text()="Drug and food interactions"]//following::div[1]//h3'
+food_interaction_drug_xpath = '//h2[text()="Drug and food interactions"]//following::div[1]//h3//following::p[1]'
 food_interaction_severity_xpath = '//h2[text()="Drug and food interactions"]//following::div[1]//span'
 food_interacion_inteteracion_xpath = '//h2[text()="Drug and food interactions"]//following::div[@class="interactions-reference"]/p[1]'
 food_interaction_references_xpath = '//h2[text()="Drug and food interactions"]//following::div[@class="interactions-reference"]/div[contains(@class,"reference-list")]'
@@ -115,6 +33,91 @@ therapeutic_duplication_text_xpath = '(//div[@class="interactions-reference-wrap
 drug_interaction_csv = 'drug_interaction.csv'
 food_interaction_csv = 'food_interaction.csv'
 therapeutic_duplication_csv = 'therapeutic_duplication.csv'
+
+
+class DrugInteraction:
+
+    def __init__(self, drug_id_1: str, drug_id_2: str):
+        print("Drug interaction")
+        self.drug_id_1 = drug_id_1
+        self.drug_id_2 = drug_id_2
+        self.severity = ""
+        self.interaction = ""
+        self.references = []
+
+    def addSeverity(self, severity: str):
+        self.severity = severity
+
+    def addInteraction(self, interaction: str):
+        self.interaction = interaction
+
+    def addReference(self, reference: str):
+        if not re.search("View all \d+ references", reference):
+            self.references.append(reference.replace("\t","").strip())
+
+    def getContents(self):
+
+        output = {'drug_id_1': self.drug_id_1,
+                  'drug_id_2': self.drug_id_2,
+                  'severity': self.severity,
+                  'interaction': self.interaction,
+                  'references': self.references}
+
+        return output
+
+
+class FoodInteraction:
+
+    def __init__(self, drug_id: str):
+        print("Food Interaction")
+        self.drug_id = drug_id
+        self.severity = ""
+        self.interaction = ""
+        self.references = []
+
+    def addSeverity(self, severity: str):
+        self.severity = severity
+
+    def addInteraction(self, interaction: str):
+        self.interaction = interaction
+
+    def addReference(self, reference: str):
+        if not re.search("View all \d+ references", reference):
+            self.references.append(reference.replace("\t","").strip())
+
+    def getContents(self):
+
+        output = {'drug_id': self.drug_id,
+                  'severity': self.severity,
+                  'interaction': self.interaction,
+                  'references': self.references}
+
+        return output
+
+
+class TherapeuticDuplication:
+
+    def __init__(self, drug_id_1: str, drug_id_2: str):
+        print("Therapeutic Duplicaiton")
+        self.drug_id_1 = drug_id_1
+        self.drug_id_2 = drug_id_2
+        self.category = ""
+        self.text = ""
+
+    def addCategory(self, category: str):
+        self.category = category
+
+    def addText(self, text: str):
+        self.text = text
+
+    def getContents(self):
+
+        output = {'drug_id_1': self.drug_id_1,
+                  'drug_id_2': self.drug_id_2,
+                  'category': self.category,
+                  'text': self.text}
+
+        return output
 
 
 def saveDrugDetails():
@@ -176,17 +179,23 @@ def getInteraction():
 
     df = pd.read_csv(drug_pairs_csv, sep="|").head(1)
 
-    interactionDetails = []
-
-    ### Create an array of the three classes instead
+    drugInteractions = []
+    foodInteractions = []
+    therapeuticDuplicaitons = []
 
     for index, row in df.iterrows():
 
-        drug_id_1 = row['drug_id_1']
-        drug_id_2 = row['drug_id_2']
+        # drug_id_1 = row['drug_id_1']
+        # drug_id_2 = row['drug_id_2']
+
+        drug_id_1 = "1115-0"
+        drug_id_2 = "1839-0"
+
+        # html_data = requests.get(url=interaction_url, params={
+        #     'drug_list': getDrugIdentifier(drug_id_1) + ',' + getDrugIdentifier(drug_id_2), 'professional': '1'}).text
 
         html_data = requests.get(url=interaction_url, params={
-            'drug_list': getDrugIdentifier(drug_id_1) + ',' + getDrugIdentifier(drug_id_2), 'professional': '1'}).text
+            'drug_list': '1115-0,1839-0', 'professional': '1'}).text
 
         doc = lxml.html.fromstring(html_data)
 
@@ -198,26 +207,17 @@ def getInteraction():
             doc, drug_interaction_severity_xpath)
         interactions = getTextFromXpath(
             doc, drug_interaction_interaction_xpath)
-        referencesList = getTextFromXpath(
+        referenceList = getTextFromXpath(
             doc, drug_interaction_references_xpath)
-
-        if len(severities) > 1:
-            print("Multiple severities found for drug interaction : (",
-                  drug_id_1, " : ", drug_id_2)
-
-        if len(interactions) > 1:
-            print("Multiple interactions found for drug interaction : (",
-                  drug_id_1, " : ", drug_id_2)
-
-        # Note: To add drug Ids
 
         drugInteraction = DrugInteraction(drug_id_1, drug_id_2)
 
-        for severity, interaction, references in zip(severities, interaction, referencesList):
+        for severity, interaction, references in zip(severities, interactions, referenceList):
             drugInteraction.addSeverity(severity)
             drugInteraction.addInteraction(interaction)
-            for reference in references:
-                drugInteraction.addReference(reference)
+            for reference in references.split("\n")[1:]:
+                foodInteraction.addReference(reference)
+            drugInteractions.append(drugInteraction.getContents())
 
         ##########################
         # Food interaction
@@ -229,13 +229,19 @@ def getInteraction():
             doc, food_interacion_inteteracion_xpath)
         referenceList = getTextFromXpath(
             doc, food_interaction_references_xpath)
+        
+        print("_____________________________________")
+        print(len(referenceList))
 
-        for drug, severity, interaction, references in zip(drugs, severities, referenceList):
-            foodInteraction = DrugInteraction(drugs.split()[0])
+
+        for drug, severity, interaction, references in zip(drugs, severities, interactions, referenceList):
+            foodInteraction = FoodInteraction(drug.split(":")[1].strip())
             foodInteraction.addSeverity(severity)
             foodInteraction.addInteraction(interaction)
-            for interaction in interactions:
-                foodInteraction.add(interaction)
+            for reference in references.split("\n")[1:]:
+                foodInteraction.addReference(reference)
+            foodInteractions.append(foodInteraction.getContents())
+            print("************************")
 
         ##########################
         # Therapeutic duplication
@@ -249,8 +255,18 @@ def getInteraction():
         therapeuticDuplicaiton = TherapeuticDuplication(drug_id_1, drug_id_2)
 
         for category, text in zip(categories, texts):
-            therapeuticDuplicaiton.category(category)
-            therapeuticDuplicaiton.text(text)
+            therapeuticDuplicaiton.addCategory(category)
+            therapeuticDuplicaiton.addText(text)
+            therapeuticDuplicaitons.append(
+            therapeuticDuplicaiton.getContents())
+
+        print("------------------------")
+
+    pd.DataFrame.from_dict(drugInteractions).to_csv(drug_interaction_csv)
+    pd.DataFrame.from_dict(foodInteractions).to_csv(food_interaction_csv)
+    pd.DataFrame.from_dict(therapeuticDuplicaitons).to_csv(
+        therapeutic_duplication_csv)
+
 
 if __name__ == "__main__":
     getInteraction()
