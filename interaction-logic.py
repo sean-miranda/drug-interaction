@@ -216,7 +216,7 @@ def getInteraction():
             drugInteraction.addSeverity(severity)
             drugInteraction.addInteraction(interaction)
             for reference in references.split("\n")[1:]:
-                foodInteraction.addReference(reference)
+                drugInteraction.addReference(reference)
             drugInteractions.append(drugInteraction.getContents())
 
         ##########################
@@ -229,10 +229,6 @@ def getInteraction():
             doc, food_interacion_inteteracion_xpath)
         referenceList = getTextFromXpath(
             doc, food_interaction_references_xpath)
-        
-        print("_____________________________________")
-        print(len(referenceList))
-
 
         for drug, severity, interaction, references in zip(drugs, severities, interactions, referenceList):
             foodInteraction = FoodInteraction(drug.split(":")[1].strip())
@@ -241,7 +237,6 @@ def getInteraction():
             for reference in references.split("\n")[1:]:
                 foodInteraction.addReference(reference)
             foodInteractions.append(foodInteraction.getContents())
-            print("************************")
 
         ##########################
         # Therapeutic duplication
