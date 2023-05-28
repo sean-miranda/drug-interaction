@@ -6,10 +6,8 @@
 import lxml.html
 import requests
 import pandas as pd
-import numpy
 import re
 import itertools
-import csv
 import re
 
 generic_names_xlsx = 'generic_names.xlsx'
@@ -17,6 +15,8 @@ drug_details_csv = 'drug_details.csv'
 drug_pairs_csv = 'drug_pairs.csv'
 live_search_url = 'https://www.drugs.com/js/search/?id=livesearch-interaction'
 interaction_url = 'https://www.drugs.com/interactions-check.php'
+drug_1_name = '//h1[text()="Drug Interaction Report"]//following::ul[1]/li[1]'
+drug_2_name = '//h1[text()="Drug Interaction Report"]//following::ul[1]/li[2]'
 
 drug_interaction_severity_xpath = '(//div[contains(@class,"interactions-reference")])[1]//span[contains(@class,"status")]'
 drug_interaction_interaction_xpath = '((//div[contains(@class,"interactions-reference")])[1]//p)[2]'
@@ -37,10 +37,12 @@ therapeutic_duplication_csv = 'therapeutic_duplication.csv'
 
 class DrugInteraction:
 
-    def __init__(self, drug_id_1: str, drug_id_2: str):
+    def __init__(self, drug_id_1: str, drug_id_2: str, drug_1_name: str, drug_2_name):
         print("Drug interaction")
         self.drug_id_1 = drug_id_1
         self.drug_id_2 = drug_id_2
+        self.drug_1_name = drug_1_name
+        self.drug_2_name = drug_2_name
         self.severity = ""
         self.interaction = ""
         self.references = []
@@ -53,12 +55,14 @@ class DrugInteraction:
 
     def addReference(self, reference: str):
         if not re.search("View all \d+ references", reference):
-            self.references.append(reference.replace("\t","").strip())
+            self.references.append(reference.replace("\t", "").strip())
 
     def getContents(self):
 
         output = {'drug_id_1': self.drug_id_1,
                   'drug_id_2': self.drug_id_2,
+                  'drug_1_name': self.drug_1_name,
+                  'drug_2_name': self.drug_2_name,
                   'severity': self.severity,
                   'interaction': self.interaction,
                   'references': self.references}
@@ -83,7 +87,7 @@ class FoodInteraction:
 
     def addReference(self, reference: str):
         if not re.search("View all \d+ references", reference):
-            self.references.append(reference.replace("\t","").strip())
+            self.references.append(reference.replace("\t", "").strip())
 
     def getContents(self):
 
@@ -97,10 +101,12 @@ class FoodInteraction:
 
 class TherapeuticDuplication:
 
-    def __init__(self, drug_id_1: str, drug_id_2: str):
+    def __init__(self, drug_id_1: str, drug_id_2: str, drug_1_name: str, drug_2_name):
         print("Therapeutic Duplicaiton")
         self.drug_id_1 = drug_id_1
         self.drug_id_2 = drug_id_2
+        self.drug_1_name = drug_1_name
+        self.drug_2_name = drug_2_name
         self.category = ""
         self.text = ""
 
@@ -114,6 +120,8 @@ class TherapeuticDuplication:
 
         output = {'drug_id_1': self.drug_id_1,
                   'drug_id_2': self.drug_id_2,
+                  'drug_1_name': self.drug_1_name,
+                  'drug_2_name': self.drug_2_name,
                   'category': self.category,
                   'text': self.text}
 
@@ -177,25 +185,35 @@ def getDrugName(drug_id):
 
 def getInteraction():
 
-    df = pd.read_csv(drug_pairs_csv, sep="|").head(1)
+    drug_pairs_df = pd.read_csv(drug_pairs_csv, sep="|").head(25)
+    drug_details_df = pd.read_csv(drug_details_csv, sep="|")
+    print()
 
     drugInteractions = []
     foodInteractions = []
     therapeuticDuplicaitons = []
 
-    for index, row in df.iterrows():
+    for index, row in drug_pairs_df.iterrows():
 
-        # drug_id_1 = row['drug_id_1']
-        # drug_id_2 = row['drug_id_2']
+        drug_id_1 = row['drug_id_1']
+        drug_id_2 = row['drug_id_2']
 
-        drug_id_1 = "1115-0"
-        drug_id_2 = "1839-0"
+        drug_1_name = drug_details_df.loc[drug_details_df['drug_id']
+                                          == drug_id_1, 'drug_name,,,'].values[0].replace(",,,", "")
+        drug_2_name = drug_details_df.loc[drug_details_df['drug_id']
+                                          == drug_id_2, 'drug_name,,,'].values[0].replace(",,,", "")
 
-        # html_data = requests.get(url=interaction_url, params={
-        #     'drug_list': getDrugIdentifier(drug_id_1) + ',' + getDrugIdentifier(drug_id_2), 'professional': '1'}).text
+        print("*** " + drug_1_name)
+        print("*** " + drug_2_name)
+
+        # drug_id_1 = "1115-0"
+        # drug_id_2 = "1839-0"
 
         html_data = requests.get(url=interaction_url, params={
-            'drug_list': '1115-0,1839-0', 'professional': '1'}).text
+            'drug_list': getDrugIdentifier(drug_id_1) + ',' + getDrugIdentifier(drug_id_2), 'professional': '1'}).text
+
+        # html_data = requests.get(url=interaction_url, params={
+        #     'drug_list': '1115-0,1839-0', 'professional': '1'}).text
 
         doc = lxml.html.fromstring(html_data)
 
@@ -210,7 +228,9 @@ def getInteraction():
         referenceList = getTextFromXpath(
             doc, drug_interaction_references_xpath)
 
-        drugInteraction = DrugInteraction(drug_id_1, drug_id_2)
+        if severities and interactions and referenceList:
+            drugInteraction = DrugInteraction(
+                drug_id_1, drug_id_2, drug_1_name, drug_2_name)
 
         for severity, interaction, references in zip(severities, interactions, referenceList):
             drugInteraction.addSeverity(severity)
@@ -247,15 +267,18 @@ def getInteraction():
         texts = getTextFromXpath(
             doc, therapeutic_duplication_text_xpath)
 
-        therapeuticDuplicaiton = TherapeuticDuplication(drug_id_1, drug_id_2)
+        if categories and texts:
+            therapeuticDuplicaiton = TherapeuticDuplication(
+                drug_id_1, drug_id_2, drug_1_name, drug_2_name)
 
         for category, text in zip(categories, texts):
             therapeuticDuplicaiton.addCategory(category)
             therapeuticDuplicaiton.addText(text)
             therapeuticDuplicaitons.append(
-            therapeuticDuplicaiton.getContents())
+                therapeuticDuplicaiton.getContents())
 
-        print("------------------------")
+        print()
+        print("--------------------------------")
 
     pd.DataFrame.from_dict(drugInteractions).to_csv(drug_interaction_csv)
     pd.DataFrame.from_dict(foodInteractions).to_csv(food_interaction_csv)
