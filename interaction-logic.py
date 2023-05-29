@@ -185,7 +185,7 @@ def getDrugName(drug_id):
 
 def getInteraction():
 
-    drug_pairs_df = pd.read_csv(drug_pairs_csv, sep="|").head(25)
+    drug_pairs_df = pd.read_csv(drug_pairs_csv, sep="|")
     drug_details_df = pd.read_csv(drug_details_csv, sep="|")
     print()
 
